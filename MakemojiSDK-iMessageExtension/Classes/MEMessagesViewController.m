@@ -5,13 +5,14 @@
 //  Copyright © 2016 Makemoji. All rights reserved.
 //
 
-#import <SDWebImage/UIImageView+WebCache.h>
+#import "SDWebImage/UIImageView+WebCache.h"
 #import "MEMessagesViewController.h"
 #import "MEStickerAPIManager.h"
 #import "MEStickerFlowLayout.h"
 #import "MEStickerCollectionViewCell.h"
 #import "MEStickerCollectionReusableView.h"
 #import "MSStickerView+WebCache.h"
+#import "Analytics.h"
 
 @interface MEMessagesViewController ()
 @property NSURLSessionDataTask * emojiWallTask;
@@ -35,8 +36,8 @@
     self.searchResults = [NSMutableArray array];
     self.automaticallyAdjustsScrollViewInsets = YES;
     
-    NSURL * podBundle = [[NSBundle bundleForClass:[MEStickerAPIManager class]] URLForResource:@"MakemojiSDK-iMessageExtension" withExtension:@"bundle"];
-    NSURL * placeHolderURL = [[NSBundle bundleWithURL:podBundle] URLForResource:@"MEPlaceholder@2x" withExtension:@"png"];
+
+    NSURL * placeHolderURL = [[NSBundle bundleForClass:[self class]] URLForResource:@"MEPlaceholder@2x" withExtension:@"png"];
     
     self.placeholderSticker = [[MSSticker alloc] initWithContentsOfFileURL:placeHolderURL localizedDescription:@"Placeholder" error:nil];
     
@@ -299,6 +300,8 @@
 }
 
 - (void)shareKeyboard {
+    [[SEGAnalytics sharedAnalytics] track:@"EXTENSION:SHARE:CLICKED"
+                               properties:@{ @"extension_type": @"ios_imessage"}];
     [[MEStickerAPIManager manager] trackShareWithEmojiId:@"0"];
     [self.activeConversation insertText:self.shareText completionHandler:nil];
 }
@@ -355,9 +358,11 @@
     }
     
     NSString * imageUrl = [emoji objectForKey:@"image_url"];
+    NSString * emojiName = [emoji objectForKey:@"name"];
     [collectionCell.stickerView sd_setStickerWithURL:[NSURL URLWithString:imageUrl] placeholderSticker:self.placeholderSticker options:0 progress:nil completed:nil];
     [[MEStickerAPIManager manager] imageViewWithId:[emoji objectForKey:@"id"]];
     collectionCell.emojiId = [emoji objectForKey:@"id"];
+    collectionCell.emojiName = emojiName;
     return collectionCell;
 }
 

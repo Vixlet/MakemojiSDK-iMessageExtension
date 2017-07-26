@@ -8,8 +8,8 @@
 
 #import <Availability.h>
 #import <Messages/Messages.h>
-#import <SDWebImage/SDWebImageCompat.h>
-#import <SDWebImage/SDWebImageManager.h>
+#import "SDWebImageCompat.h"
+#import "SDWebImage/SDWebImageManager.h"
 
 @interface MSStickerView (WebCache)
 

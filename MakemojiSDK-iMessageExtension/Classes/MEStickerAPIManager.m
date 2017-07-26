@@ -8,7 +8,7 @@
 
 #import "MEStickerAPIManager.h"
 #import <AdSupport/AdSupport.h>
-
+#import "Analytics.h"
 
 @implementation MEStickerAPIManager
 
@@ -169,6 +169,7 @@ NSString *const kMEStickersSSLBaseUrl = @"https://api.makemoji.com/sdk/";
     manager.responseSerializer = [AFJSONResponseSerializer serializer];
     NSString * url = [NSString stringWithFormat:@"emoji/share/0/%@/%@", emojiId, @"emoji"];
 
+   
     [manager GET:url parameters:nil success:^(NSURLSessionDataTask *task, id responseObject) {
 
     } failure:^(NSURLSessionDataTask *task, NSError *error) {

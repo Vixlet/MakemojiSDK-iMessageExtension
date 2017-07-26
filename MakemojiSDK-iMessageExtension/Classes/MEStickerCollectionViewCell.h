@@ -12,4 +12,6 @@
 @interface MEStickerCollectionViewCell : UICollectionViewCell <UIGestureRecognizerDelegate>
 @property (nonatomic, strong) MSStickerView * stickerView;
 @property (nonatomic, weak) NSString * emojiId;
+@property (nonatomic, weak) NSString * emojiName;
+
 @end

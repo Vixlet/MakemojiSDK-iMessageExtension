@@ -9,6 +9,7 @@
 #import "MEStickerCollectionViewCell.h"
 #import "MEStickerAPIManager.h"
 #import <SDWebImage/UIImageView+WebCache.h>
+#import "Analytics.h"
 
 @implementation MEStickerCollectionViewCell
 
@@ -44,6 +45,9 @@
 }
 
 -(void)didTapSticker:(UITapGestureRecognizer *)recognizer {
+    [[SEGAnalytics sharedAnalytics] track:@"EXTENSION:EMOJI_ITEM:CLICKED"
+                               properties:@{ @"emoji_id": self.emojiName}];
+
     [[MEStickerAPIManager manager] trackShareWithEmojiId:self.emojiId];
 }
 
