@@ -8,6 +8,10 @@
 
 #import <UIKit/UIKit.h>
 
+
+
 @interface MEStickerCollectionReusableView : UICollectionReusableView
 @property UILabel * sectionLabel;
+
+
 @end

@@ -26,7 +26,10 @@
     }
     return self;
 }
-
+-(void) viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:animated];
+    [self initializeDataFromMainApp];
+}
 -(void) initializeDataFromMainApp {
     NSUserDefaults *shared = [[NSUserDefaults alloc] initWithSuiteName:@"group.com.vixlet.ios"];
     NSString *brandCode = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"brandCode"];;
@@ -35,7 +38,8 @@
     NSString *mojiShareLinkKey = [NSString stringWithFormat:@"%@%@", brandCode, @"mojiShareLink"];
     NSString *analyticsAPIKey = [NSString stringWithFormat:@"%@%@", brandCode, @"analyticsAPIKey"];
     NSString *userId = [NSString stringWithFormat:@"%@%@", brandCode, @"userId"];
-
+    NSString *unlockedCode = [NSString stringWithFormat:@"%@%@", brandCode, @"unlockedCategories"];
+    NSString *brandColorCode = [NSString stringWithFormat:@"%@%@", brandCode, @"color"];
 
     _analyiticsAPIKey = [shared valueForKey:analyticsAPIKey];
     if (_analyiticsAPIKey == nil) {
@@ -43,9 +47,7 @@
     }
 
     _userId = [shared valueForKey:userId];
-    if (_userId == nil) {
-        _userId = @"";
-    }
+
 
     _shareLink = [shared valueForKey:mojiShareLinkKey];
     if (_shareLink == nil) {
@@ -54,7 +56,14 @@
 
     _mojiAPIKey = [shared valueForKey:mojiAPIKey];
     if (_mojiAPIKey == nil) {
-        _mojiAPIKey = @"";
+        _mojiAPIKey = @"178e4219d7a98a3d6ee15438adb61c690ea090af";
+    }
+    self.unlockedCategories = [shared valueForKey:unlockedCode];
+    
+    NSData * brandColorData = [shared dataForKey:brandColorCode];
+
+    if(brandColorData){
+        self.brandColor = [NSKeyedUnarchiver unarchiveObjectWithData:brandColorData];
     }
 }
 
@@ -85,16 +94,19 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    if ( _userId != nil ){
-        [[SEGAnalytics sharedAnalytics] identify:_userId];
-    }
-    [[SEGAnalytics sharedAnalytics] track:@"EXTENSION:OPENED"
-                               properties:@{ @"extension_type": @"ios_imessage"}];
     // Do any additional setup after loading the view.
 }
 
 
+-(void) viewDidAppear:(BOOL)animated {
+    [super viewDidAppear:animated];
+    if ( !([_userId length] == 0) ) {
+        [[SEGAnalytics sharedAnalytics] identify:_userId];
+    }
+    [[SEGAnalytics sharedAnalytics] track:@"EXTENSION:OPENED"
+                               properties:@{ @"extension_type": @"ios_imessage"}];
 
+}
 - (void)didReceiveMemoryWarning {
     [super didReceiveMemoryWarning];
     // Dispose of any resources that can be recreated.

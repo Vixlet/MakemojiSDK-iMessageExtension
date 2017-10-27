@@ -21,7 +21,7 @@ NSString *const kMEStickersSSLBaseUrl = @"https://api.makemoji.com/sdk/";
     dispatch_once(&onceToken, ^{
         requests = [[MEStickerAPIManager alloc] initWithBaseURL:[NSURL URLWithString:kMEStickersSSLBaseUrl]];
         [requests.reachabilityManager startMonitoring];
-        requests.channel = @"";
+        requests.channel = @"Premiums";
         NSString * deviceId = [[[UIDevice currentDevice] identifierForVendor] UUIDString];
         
         if ([[ASIdentifierManager sharedManager] isAdvertisingTrackingEnabled] == YES) {

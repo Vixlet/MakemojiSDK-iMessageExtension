@@ -13,9 +13,10 @@
 #import "MEStickerCollectionReusableView.h"
 #import "MSStickerView+WebCache.h"
 #import "Analytics.h"
-
+#import "LockCoverView.h"
 @interface MEMessagesViewController ()
 @property NSURLSessionDataTask * emojiWallTask;
+
 @end
 
 @implementation MEMessagesViewController
@@ -32,6 +33,8 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+
+
     self.isSearching = NO;
     self.searchResults = [NSMutableArray array];
     self.automaticallyAdjustsScrollViewInsets = YES;
@@ -82,7 +85,17 @@
     [self.view.bottomAnchor constraintEqualToAnchor:self.stickerBrowser.bottomAnchor].active = YES;
     [self.view.leftAnchor constraintEqualToAnchor:self.stickerBrowser.leftAnchor].active = YES;
     [self.view.rightAnchor constraintEqualToAnchor:self.stickerBrowser.rightAnchor].active = YES;
-    
+
+    self.lockView = [[LockCoverView alloc]initWithFrame:self.inputView.frame];
+    [self.lockView setHidden:YES];
+    self.lockView.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.view addSubview:self.lockView];
+    [self.view.topAnchor constraintEqualToAnchor:self.lockView.topAnchor].active = YES;
+    [self.view.bottomAnchor constraintEqualToAnchor:self.lockView.bottomAnchor].active = YES;
+    [self.view.leftAnchor constraintEqualToAnchor:self.lockView.leftAnchor].active = YES;
+    [self.view.rightAnchor constraintEqualToAnchor:self.lockView.rightAnchor].active = YES;
+
+
     [self.view bringSubviewToFront:self.shareButton];
     self.searchBar = [[UISearchBar alloc] initWithFrame:CGRectZero];
     [self.searchBar setBackgroundColor:[UIColor colorWithWhite:0.97 alpha:1]];
@@ -111,8 +124,68 @@
     [self loadFromDisk:[[MEStickerAPIManager client] cacheNameWithChannel:@"categories"]];
     [self loadFromDisk:[[MEStickerAPIManager client] cacheNameWithChannel:@"wall"]];
     [self updateData];
+
+
+    [self.lockView.cancelButton addTarget:self action:@selector(cancelLockView) forControlEvents:UIControlEventTouchUpInside];
+    [self.lockView.background addTarget:self action:@selector(cancelLockView) forControlEvents:UIControlEventTouchUpInside];
+
+    [self.lockView.learnMoreButton addTarget:self action:@selector(lockLearnMorePressed) forControlEvents:UIControlEventTouchUpInside];
+
+    [self.view bringSubviewToFront:self.lockView];
+
     
 }
+
+
+-(void)cancelLockView {
+    [UIView transitionWithView:self.lockView
+                      duration:0.2
+                       options:UIViewAnimationOptionTransitionCrossDissolve
+                    animations:^{
+                        self.lockView.hidden = YES;
+                    }
+                    completion:NULL];
+
+}
+
+
+-(void)lockLearnMorePressed {
+    [self cancelLockView];
+    if(self.lastSharedEmoji) {
+        [self sendToStore];
+    }
+}
+
+-(void)loadLockView
+{
+    if( self.brandColor != nil) {
+        self.lockView.learnMoreButton.backgroundColor = self.brandColor;
+    }
+    [UIView transitionWithView:self.lockView
+                      duration:0.2
+                       options:UIViewAnimationOptionTransitionCrossDissolve
+                    animations:^{
+                        self.lockView.hidden = NO;
+                    }
+                    completion:NULL];
+
+}
+
+-(void) sendToStore  {
+    UIResponder *responder = self;
+    while(responder){
+        if ([responder respondsToSelector: @selector(openURL:)]){
+            NSString *urlscheme = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"urlscheme"];;
+
+            NSString* encodedCategory = [_lastSharedEmoji stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
+            NSString * url = [NSString stringWithFormat:@"%1$@://vixlet/purchase/%2$@", urlscheme, encodedCategory];
+            [responder performSelector: @selector(openURL:) withObject: [NSURL URLWithString:url ]];
+        }
+        responder = [responder nextResponder];
+    }
+}
+
+
 
 - (BOOL)searchBarShouldBeginEditing:(UISearchBar *)searchBar {
     return YES;
@@ -149,6 +222,9 @@
 -(BOOL)isCategoryLocked:(NSString *)categoryName {
     for (NSDictionary * cat in self.categories) {
         if ([cat objectForKey:@"locked"] && [[cat objectForKey:@"locked"] boolValue] == YES && [[cat objectForKey:@"name"] isEqualToString:categoryName]) {
+            if (self.unlockedCategories && [self.unlockedCategories containsObject: [cat objectForKey:@"name"]]){
+                return NO;
+            }
             return YES;
         }
     }
@@ -272,6 +348,7 @@
     
 }
 
+
 - (NSMutableArray *)categories {
     if (_categories == nil) {
         _categories = [NSMutableArray array];
@@ -309,7 +386,28 @@
 
 #pragma mark - Collection View data source
 
+- (CGSize)collectionView:(UICollectionView* )collectionView layout:(UICollectionViewLayout*)collectionViewLayout sizeForItemAtIndexPath:(NSIndexPath* )indexPath {
+    CGRect frame = [[UIScreen mainScreen] bounds];
+
+    CGFloat width = frame.size.width;
+    if (width > frame.size.height) { width = frame.size.height; }
+
+    if (collectionView == self.stickerBrowser) {
+        return CGSizeMake(width/3,110);
+    }
+
+    return CGSizeMake(width/5,71);
+}
+
 - (void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath {
+
+    NSDictionary * lastCategory = [self.categories objectAtIndex:indexPath.section];
+    self.lastSharedEmoji = [lastCategory valueForKey:@"name"];
+
+        [self loadLockView];
+
+
+
     // not called
 }
 
@@ -356,15 +454,34 @@
     } else {
       emoji = [[self emojiArrayForSection:indexPath.section] objectAtIndex:indexPath.item];
     }
-    
+
+    NSMutableDictionary *blendedDict = [NSMutableDictionary dictionaryWithDictionary:emoji];
+
+    NSDictionary* category = [self.categories objectAtIndex:indexPath.section];
+    if(category[@"locked"]){
+        blendedDict[@"locked"] = category[@"locked"];
+    }
+    if(category[@"name"]){
+        collectionCell.categoryName = category[@"name"];
+        blendedDict[@"category"] = category[@"name"];
+        [collectionCell setLocked:[self isCategoryLocked:category[@"name"]]];
+    } else{
+        [collectionCell setLocked:NO];
+    }
+    emoji = blendedDict;
+
     [collectionCell.stickerView stopAnimating];
-    
+
+
     NSString * imageUrl = [emoji objectForKey:@"image_url"];
     NSString * emojiName = [emoji objectForKey:@"name"];
+
+
     [collectionCell.stickerView sd_setStickerWithURL:[NSURL URLWithString:imageUrl] placeholderSticker:self.placeholderSticker options:0 progress:nil completed:nil];
     [[MEStickerAPIManager manager] imageViewWithId:[emoji objectForKey:@"id"]];
     collectionCell.emojiId = [emoji objectForKey:@"id"];
     collectionCell.emojiName = emojiName;
+
     return collectionCell;
 }
 
